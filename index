@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>2026吉林市马拉松 - 直播机位</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding-bottom: env(safe-area-inset-bottom); }
+        .glass-card { background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.1); transition: transform 0.2s; }
+        .glass-card:active { transform: scale(0.98); }
+        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 12px; padding: 12px 20px; font-size: 15px; font-weight: 600; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+        .btn-primary:active { transform: scale(0.95); opacity: 0.9; }
+        .btn-secondary { background: #f3f4f6; color: #374151; border: 1px solid #e5e7eb; border-radius: 12px; padding: 10px 16px; font-size: 14px; font-weight: 500; cursor: pointer; }
+        .status-badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+        .status-live { background: #fee2e2; color: #dc2626; }
+        .status-upcoming { background: #dbeafe; color: #2563eb; }
+        .status-ended { background: #f3f4f6; color: #6b7280; }
+        .pulse-dot { width: 8px; height: 8px; background: #dc2626; border-radius: 50%; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+        .toast { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); background: rgba(0,0,0,0.8); color: white; padding: 16px 24px; border-radius: 12px; font-size: 14px; z-index: 1000; display: none; }
+        .video-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 999; flex-direction: column; align-items: center; justify-content: center; }
+        .video-modal.active { display: flex; }
+        .video-container { width: 100%; aspect-ratio: 16/9; background: #000; }
+        .stream-url { font-family: 'Courier New', monospace; font-size: 11px; color: #6b7280; word-break: break-all; background: #f9fafb; padding: 8px; border-radius: 6px; margin-top: 8px; }
+    </style>
+</head>
+<body class="p-4">
+    <div class="text-center mb-6 pt-2">
+        <div class="inline-flex items-center gap-2 bg-white/20 backdrop-blur px-4 py-2 rounded-full mb-3">
+            <i class="fas fa-running text-white text-lg"></i>
+            <span class="text-white font-bold text-lg">2026吉林市马拉松</span>
+        </div>
+        <p class="text-white/80 text-sm">直播机位总览 | 5月31日</p>
+        <div id="countdown" class="text-white/90 text-sm mt-2 font-mono"></div>
+    </div>
+
+    <div id="camera-list" class="space-y-4 max-w-md mx-auto"></div>
+
+    <div id="video-modal" class="video-modal">
+        <div class="video-container">
+            <video id="video-player" controls autoplay style="width:100%;height:100%;object-fit:contain;"></video>
+        </div>
+        <div class="mt-4 px-4 w-full max-w-md">
+            <p id="modal-title" class="text-white font-bold text-center mb-2"></p>
+            <p class="text-white/60 text-xs text-center mb-4">如果无法播放，请复制地址到VLC或PotPlayer打开</p>
+            <div class="flex gap-3">
+                <button onclick="copyCurrentUrl()" class="btn-primary flex-1"><i class="fas fa-copy mr-1"></i>复制地址</button>
+                <button onclick="closeModal()" class="btn-secondary flex-1">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script>
+        const cameras = [
+            {keyword:"5km",position:"半|全① 12km 4K",url:"rtmp://ali-play.lezhibo.com/lezhibo/338de16650624c5e84d093dc2484e145",start:"2026-05-31 7:36:00",end:"2026-05-31 9:46:00"},
+            {keyword:"10km",position:"半|全② 15.5km 4K",url:"rtmp://ali-play.lezhibo.com/lezhibo/743c7b00d2df46ea98fd122d2f509cf0",start:"2026-05-31 7:45:00",end:"2026-05-31 10:18:00"},
+            {keyword:"15km",position:"半|全③ 18.7km 4K",url:"rtmp://ali-play.lezhibo.com/lezhibo/4f2e8fb5aa19496787b4c7444a08f726",start:"2026-05-31 7:54:00",end:"2026-05-31 10:42:00"},
+            {keyword:"20km",position:"半|全④ 20km 4K",url:"rtmp://ali-play.lezhibo.com/lezhibo/58c4ca4ffa4340cf8b599e43b05cd141",start:"2026-05-31 8:00:00",end:"2026-05-31 10:50:00"},
+            {keyword:"25km",position:"半⑤ 20.7km",url:"rtmp://ali-play.lezhibo.com/lezhibo/6aea392286ac466a834da40222ef9527",start:"2026-05-31 8:00:00",end:"2026-05-31 10:55:00"},
+            {keyword:"30km",position:"全⑤ 26km",url:"rtmp://ali-play.lezhibo.com/lezhibo/37fc1bd1a44746c0a1ad42a412642b62",start:"2026-05-31 8:18:00",end:"2026-05-31 10:59:00"},
+            {keyword:"半马终点",position:"半马终点",url:"rtmp://ali-play.lezhibo.com/lezhibo/f01cc5550557426081f4c3679066a491",start:"2026-05-31 8:23:00",end:"2026-05-31 10:42:00"},
+            {keyword:"全马终点",position:"全马终点",url:"rtmp://ali-play.lezhibo.com/lezhibo/8224efa73ce849cd85b5b889b328447a",start:"2026-05-31 9:06:00",end:"2026-05-31 13:05:00"}
+        ];
+
+        let currentUrl='', currentTitle='';
+
+        function getStatus(start,end){const now=new Date(),s=new Date(start),e=new Date(end);if(now<s)return'upcoming';if(now>e)return'ended';return'live';}
+        function getStatusText(s){if(s==='live')return'<span class="status-badge status-live"><span class="pulse-dot"></span>直播中</span>';if(s==='upcoming')return'<span class="status-badge status-upcoming"><i class="fas fa-clock"></i>未开始</span>';return'<span class="status-badge status-ended"><i class="fas fa-check"></i>已结束</span>';}
+        function fmtTime(str){return new Date(str).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'});}
+
+        function render(){
+            document.getElementById('camera-list').innerHTML=cameras.map(cam=>{
+                const status=getStatus(cam.start,cam.end);
+                const isLive=status==='live';
+                return `<div class="glass-card p-4 ${isLive?'ring-2 ring-red-400':''}">
+                    <div class="flex justify-between items-start mb-2">
+                        <div><h3 class="font-bold text-gray-800 text-lg">${cam.keyword}</h3><p class="text-gray-500 text-sm">${cam.position}</p></div>
+                        ${getStatusText(status)}
+                    </div>
+                    <div class="flex items-center gap-2 text-sm text-gray-600 mb-3"><i class="far fa-clock text-gray-400"></i><span>${fmtTime(cam.start)} - ${fmtTime(cam.end)}</span></div>
+                    <div class="flex gap-2">
+                        <button onclick="tryPlay('${cam.url}','${cam.keyword} - ${cam.position}')" class="btn-primary flex-1 ${!isLive?'opacity-50':''}"><i class="fas fa-play mr-1"></i>尝试播放</button>
+                        <button onclick="copyUrl('${cam.url}')" class="btn-secondary"><i class="fas fa-copy"></i></button>
+                    </div>
+                    <div class="stream-url">${cam.url}</div>
+                </div>`;
+            }).join('');
+        }
+
+        function tryPlay(url,title){currentUrl=url;currentTitle=title;document.getElementById('modal-title').textContent=title;const v=document.getElementById('video-player');v.src=url;v.play().catch(()=>showToast('RTMP格式需用专业播放器打开'));document.getElementById('video-modal').classList.add('active');}
+        function closeModal(){const v=document.getElementById('video-player');v.pause();v.src='';document.getElementById('video-modal').classList.remove('active');}
+        function copyCurrentUrl(){copyUrl(currentUrl);}
+        function copyUrl(url){if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(url).then(()=>showToast('已复制到剪贴板')).catch(()=>fallbackCopy(url));}else{fallbackCopy(url);}}
+        function fallbackCopy(text){const input=document.createElement('textarea');input.value=text;input.style.position='fixed';input.style.opacity='0';document.body.appendChild(input);input.select();document.execCommand('copy');document.body.removeChild(input);showToast('已复制到剪贴板');}
+        function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';setTimeout(()=>t.style.display='none',2000);}
+
+        function updateCountdown(){
+            const now=new Date(),raceStart=new Date('2026-05-31 7:36:00'),diff=raceStart-now;
+            if(diff>0){const d=Math.floor(diff/86400000),h=Math.floor((diff%86400000)/3600000),m=Math.floor((diff%3600000)/60000),s=Math.floor((diff%60000)/1000);document.getElementById('countdown').textContent=`距离开赛还有 ${d}天 ${h}时 ${m}分 ${s}秒`;}
+            else{document.getElementById('countdown').textContent='比赛进行中';}
+        }
+
+        render(); updateCountdown(); setInterval(updateCountdown,1000); setInterval(render,60000);
+        document.getElementById('video-modal').addEventListener('click',function(e){if(e.target===this)closeModal();});
+    </script>
+</body>
+</html>
